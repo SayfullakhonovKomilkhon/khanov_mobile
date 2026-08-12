@@ -412,12 +412,12 @@ export default function StudentHomeScreen() {
 
   return (
     <Screen
-      header={topBar}
       background={<StudentBackground />}
       contentStyle={styles.screenContent}
       refreshing={refreshing}
       onRefresh={refreshDashboard}
     >
+      {topBar}
       <View style={styles.hero}>
         <Text style={styles.greeting}>ПРИВЕТ, БОЕЦ</Text>
         <MaskedView
@@ -535,7 +535,7 @@ export default function StudentHomeScreen() {
 
 const styles = StyleSheet.create({
   screenContent: { paddingTop: 0, paddingBottom: 210, gap: 0 },
-  topBar: { minHeight: 72, paddingHorizontal: spacing.md, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  topBar: { minHeight: 72, marginHorizontal: -spacing.md, paddingHorizontal: spacing.md, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
   identity: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   avatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 22px rgba(239,142,56,0.28), inset 0 1px 0 rgba(255,255,255,0.60)' },
   championAvatar: { borderWidth: 2, borderColor: '#D97706' },
