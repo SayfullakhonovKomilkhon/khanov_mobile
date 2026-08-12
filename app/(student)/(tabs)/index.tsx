@@ -1,4 +1,4 @@
-import { ComponentType, ReactNode, useEffect } from 'react';
+import { ComponentType, ReactNode, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -217,8 +217,19 @@ function XpCard({
   const entrance = useSharedValue(0);
   const progress = useSharedValue(0);
   const tipPulse = useSharedValue(1);
+  const [displayLevel, setDisplayLevel] = useState(0);
 
   useEffect(() => {
+    let animationFrame = 0;
+    const startedAt = Date.now();
+    const countLevel = () => {
+      const elapsed = Math.min(1, (Date.now() - startedAt) / 1000);
+      const eased = 1 - Math.pow(1 - elapsed, 3);
+      setDisplayLevel(Math.round(level * eased));
+      if (elapsed < 1) animationFrame = requestAnimationFrame(countLevel);
+    };
+
+    animationFrame = requestAnimationFrame(countLevel);
     entrance.value = withSpring(1, { damping: 20, stiffness: 145 });
     progress.value = withDelay(220, withTiming(percent, { duration: 1200 }));
     tipPulse.value = withRepeat(
@@ -229,7 +240,9 @@ function XpCard({
       -1,
       true,
     );
-  }, [entrance, percent, progress, tipPulse]);
+
+    return () => cancelAnimationFrame(animationFrame);
+  }, [entrance, level, percent, progress, tipPulse]);
 
   const entranceStyle = useAnimatedStyle(() => ({
     opacity: entrance.value,
@@ -252,7 +265,19 @@ function XpCard({
         <View style={styles.xpTop}>
           <View style={styles.levelRow}>
             <Text style={styles.levelLabel}>УРОВЕНЬ</Text>
-            <Text style={styles.levelValue}>{level}</Text>
+            <MaskedView
+              style={styles.levelMask}
+              maskElement={<Text style={styles.levelValue}>{displayLevel}</Text>}
+            >
+              <LinearGradient
+                colors={[colors.wool, colors.clay]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.levelGradient}
+              >
+                <Text style={[styles.levelValue, styles.heroNameMeasure]}>{displayLevel}</Text>
+              </LinearGradient>
+            </MaskedView>
           </View>
           <Text style={styles.xpLabel}>
             <Text style={styles.xpStrong}>{current}</Text> / {target} XP
@@ -267,7 +292,7 @@ function XpCard({
               style={styles.progressFill}
             />
           </Animated.View>
-          {percent > 0 ? <Animated.View style={[styles.progressTip, tipStyle]} /> : null}
+          <Animated.View style={[styles.progressTip, tipStyle]} />
         </View>
       </LinearGradient>
     </Animated.View>
@@ -348,7 +373,11 @@ export default function StudentHomeScreen() {
   };
 
   const topBar = (
-    <View style={styles.topBar}>
+    <LinearGradient
+      colors={['rgba(248,248,255,0.94)', 'rgba(248,248,255,0.76)', 'rgba(248,248,255,0)']}
+      locations={[0, 0.7, 1]}
+      style={styles.topBar}
+    >
       <Pressable style={styles.identity} onPress={() => router.push('/(student)/(tabs)/profile')}>
         <LinearGradient
           colors={champion ? ['#FDE68A', '#D97706'] : ['#FFD27A', '#F5B544', colors.clay]}
@@ -378,7 +407,7 @@ export default function StudentHomeScreen() {
           {(unread.data?.count ?? 0) > 0 ? <View style={styles.notificationDot} /> : null}
         </Pressable>
       </View>
-    </View>
+    </LinearGradient>
   );
 
   return (
@@ -505,8 +534,8 @@ export default function StudentHomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  screenContent: { paddingTop: 0, gap: 0 },
-  topBar: { minHeight: 64, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, backgroundColor: 'rgba(248,248,255,0.74)' },
+  screenContent: { paddingTop: 0, paddingBottom: 210, gap: 0 },
+  topBar: { minHeight: 72, paddingHorizontal: spacing.md, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
   identity: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   avatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 22px rgba(239,142,56,0.28), inset 0 1px 0 rgba(255,255,255,0.60)' },
   championAvatar: { borderWidth: 2, borderColor: '#D97706' },
@@ -543,6 +572,8 @@ const styles = StyleSheet.create({
   xpTop: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: spacing.sm },
   levelRow: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.xs },
   levelLabel: { color: colors.inkSecondary, fontSize: 10, fontWeight: '800', letterSpacing: 1.4 },
+  levelMask: { width: 66, height: 53 },
+  levelGradient: { width: 66, height: 53 },
   levelValue: { color: colors.wool, fontSize: 50, lineHeight: 53, fontWeight: '900', letterSpacing: -2 },
   xpLabel: { marginBottom: 7, color: colors.inkSecondary, fontSize: 11, fontWeight: '700' },
   xpStrong: { color: colors.ink, fontWeight: '900' },
