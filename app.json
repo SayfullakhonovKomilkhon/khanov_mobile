@@ -1,25 +1,53 @@
 {
   "expo": {
-    "name": "KhanovMath_mobile",
-    "slug": "KhanovMath_mobile",
+    "name": "KhanovMath Academy",
+    "slug": "khanovmath-academy",
+    "scheme": "khanovmath",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/khanovmath-icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "uz.khanovmath.academy"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundColor": "#F8F8FF",
+        "foregroundImage": "./assets/khanovmath-icon.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "uz.khanovmath.academy",
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/khanovmath-icon.png",
+          "color": "#2650BB"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Разрешите KhanovMath Academy выбрать квитанцию или изображение."
+        }
+      ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "806760f3-ee74-48b8-85ab-f333b08d4a8d"
+      }
+    },
+    "owner": "pokamolodoy"
   }
 }
