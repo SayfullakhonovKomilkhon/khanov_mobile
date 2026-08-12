@@ -199,6 +199,10 @@ const styles = StyleSheet.create({
     ...shadows.floating,
   },
   floatingContainer: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    left: 0,
     paddingHorizontal: 12,
     paddingTop: 8,
     backgroundColor: 'transparent',
@@ -220,7 +224,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.82)',
     borderRadius: radius.pill,
     backgroundColor: 'rgba(255,255,255,0.94)',
-    ...shadows.floating,
+    boxShadow: '0 -6px 50px rgba(55,47,87,0.20), inset 0 -1px 0 rgba(255,255,255,0.60)',
   },
   item: {
     flex: 1,

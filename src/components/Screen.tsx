@@ -15,6 +15,7 @@ type Props = PropsWithChildren<{
   scroll?: boolean;
   keyboard?: boolean;
   header?: ReactNode;
+  background?: ReactNode;
   contentStyle?: ViewStyle;
   refreshing?: boolean;
   onRefresh?: () => void;
@@ -25,6 +26,7 @@ export function Screen({
   scroll = true,
   keyboard,
   header,
+  background,
   contentStyle,
   refreshing = false,
   onRefresh,
@@ -46,6 +48,7 @@ export function Screen({
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+      {background ? <View pointerEvents="none" style={styles.background}>{background}</View> : null}
       {header}
       {keyboard ? (
         <KeyboardAvoidingView
@@ -63,6 +66,7 @@ export function Screen({
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
+  background: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
   flex: { flex: 1 },
   content: { paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: 120 },
 });
