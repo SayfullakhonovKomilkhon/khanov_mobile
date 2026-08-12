@@ -30,6 +30,9 @@ async function getDeviceId() {
 export async function registerCurrentDeviceForPush() {
   if (!Device.isDevice || (Platform.OS !== 'ios' && Platform.OS !== 'android')) return null;
   if (!EAS_PROJECT_ID) return null;
+  // Android remote notifications require Firebase native configuration.
+  // Keep the rest of the app testable until google-services.json is added.
+  if (Platform.OS === 'android' && !Constants.expoConfig?.android?.googleServicesFile) return null;
 
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
@@ -37,7 +40,6 @@ export async function registerCurrentDeviceForPush() {
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 180, 250],
       lightColor: '#2650BB',
-      sound: 'default',
     });
   }
 

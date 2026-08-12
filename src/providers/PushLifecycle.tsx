@@ -9,15 +9,20 @@ export function PushLifecycle() {
 
   useEffect(() => {
     if (status !== 'authenticated' || !user) return;
-    void registerCurrentDeviceForPush();
+    void registerCurrentDeviceForPush().catch(() => {
+      // Push setup must never block access to the student or parent cabinet.
+      // Registration will be attempted again on the next authenticated launch.
+    });
 
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
       openNotificationTarget(user.role, response.notification.request.content.data);
     });
 
-    void Notifications.getLastNotificationResponseAsync().then((response) => {
-      if (response) openNotificationTarget(user.role, response.notification.request.content.data);
-    });
+    void Notifications.getLastNotificationResponseAsync()
+      .then((response) => {
+        if (response) openNotificationTarget(user.role, response.notification.request.content.data);
+      })
+      .catch(() => undefined);
 
     return () => subscription.remove();
   }, [status, user]);
