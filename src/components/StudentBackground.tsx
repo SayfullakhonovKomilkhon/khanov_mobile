@@ -1,5 +1,6 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   useAnimatedStyle,
@@ -118,8 +119,17 @@ function Particle({
   );
 }
 
-export function StudentBackground() {
+export function StudentBackground({ particleCount = PARTICLES.length }: { particleCount?: number }) {
   const { width, height } = useWindowDimensions();
+  const [isFocused, setIsFocused] = useState(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      setIsFocused(true);
+      return () => setIsFocused(false);
+    }, []),
+  );
+  const visibleParticles = isFocused ? Math.max(0, particleCount) : 0;
 
   return (
     <View pointerEvents="none" style={styles.fill}>
@@ -137,7 +147,7 @@ export function StudentBackground() {
       <View style={[styles.heroGlow, { bottom: -height * 0.28, left: -width * 0.28 }]}>
         <Glow size={Math.max(width * 1.5, 560)} color={colors.teal} opacity={0.11} />
       </View>
-      {PARTICLES.map((particle, index) => (
+      {PARTICLES.slice(0, visibleParticles).map((particle, index) => (
         <Particle
           key={`${particle.color}-${index}`}
           {...particle}

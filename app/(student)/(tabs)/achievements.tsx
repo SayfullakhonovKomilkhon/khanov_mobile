@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import MaskedView from '@react-native-masked-view/masked-view';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Award, ChevronRight, Sparkles, Trophy, Users, X } from 'lucide-react-native';
@@ -68,6 +68,13 @@ const SPECIALS: Record<string, SpecialDefinition> = {
 type Detail =
   | { kind: 'month'; medal: AchievementMedal }
   | { kind: 'special'; achievement: SpecialAchievement; definition: SpecialDefinition };
+
+type RewardListItem =
+  | { kind: 'monthsHeading'; id: string }
+  | { kind: 'monthRow'; id: string; medals: AchievementMedal[]; startIndex: number }
+  | { kind: 'monthsHint'; id: string }
+  | { kind: 'specialsHeading'; id: string }
+  | { kind: 'special'; id: string; achievement: SpecialAchievement; definition: SpecialDefinition; index: number };
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/);
@@ -170,14 +177,18 @@ function MonthCard({ medal, index, onPress }: { medal: AchievementMedal; index: 
   const meta = MONTHS[medal.month - 1] ?? MONTHS[0];
   const float = useSharedValue(0);
   useEffect(() => {
+    if (!medal.unlocked) {
+      float.value = 0;
+      return;
+    }
     float.value = withDelay(index * 70, withRepeat(withSequence(withTiming(-3, { duration: 1300 }), withTiming(0, { duration: 1300 })), -1, true));
-  }, [float, index]);
+  }, [float, index, medal.unlocked]);
   const iconStyle = useAnimatedStyle(() => ({ transform: [{ translateY: float.value }, { scale: medal.place === 1 ? 1.04 : 1 }] }));
   const unlocked = !!medal.unlocked && !!medal.place;
   const borderColor = medal.place === 1 ? '#D97706' : medal.place === 2 ? '#94A3B8' : '#EA8C4A';
 
   return (
-    <Animated.View entering={FadeInDown.delay(index * 45).duration(400)} style={styles.monthCell}>
+    <Animated.View entering={medal.unlocked ? FadeInDown.delay(Math.min(index, 3) * 45).duration(400) : undefined} style={styles.monthCell}>
       <Pressable disabled={!unlocked} style={({ pressed }) => [styles.monthPressable, pressed && styles.cardPressed]} onPress={onPress}>
         {unlocked ? (
           <LinearGradient colors={meta.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.monthCard, { borderColor, borderWidth: medal.place === 1 ? 2 : 1 }]}>
@@ -293,48 +304,95 @@ export default function StudentAchievementsScreen() {
   const specials = payload?.specialAchievements ?? [];
   const podium = rating.data?.rating?.slice(0, 3) ?? [];
   const refreshing = achievements.isRefetching || profile.isRefetching || rating.isRefetching;
+  const listData: RewardListItem[] = (() => {
+    const items: RewardListItem[] = [{ kind: 'monthsHeading', id: 'months-heading' }];
+    for (let index = 0; index < medals.length; index += 2) {
+      items.push({
+        kind: 'monthRow',
+        id: `months-${index}`,
+        medals: medals.slice(index, index + 2),
+        startIndex: index,
+      });
+    }
+    items.push({ kind: 'monthsHint', id: 'months-hint' });
+    if (specials.length) {
+      items.push({ kind: 'specialsHeading', id: 'specials-heading' });
+      specials.forEach((achievement, index) => {
+        const definition = SPECIALS[achievement.key];
+        if (definition) items.push({ kind: 'special', id: `special-${achievement.key}`, achievement, definition, index });
+      });
+    }
+    return items;
+  })();
+
+  const listHeader = (
+    <>
+      <Animated.View entering={FadeInDown.duration(440)} style={styles.pageHeader}>
+        <View style={styles.kicker}><Text style={styles.kickerText}>НАГРАДЫ</Text></View>
+        <MaskedView style={styles.titleMask} maskElement={<Text style={styles.pageTitle}>Твой путь</Text>}>
+          <LinearGradient colors={[colors.blue, colors.teal, colors.clay]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }}>
+            <Text style={[styles.pageTitle, styles.titleMeasure]}>Твой путь</Text>
+          </LinearGradient>
+        </MaskedView>
+        <Text style={styles.pageDescription}>Каждая медаль — доказательство твоих усилий.</Text>
+      </Animated.View>
+
+      <ProfileHero fullName={student?.fullName ?? profile.data?.fullName ?? 'Ученик'} groupName={student?.groupName ?? profile.data?.group?.name ?? '—'} gold={gold} silver={silver} bronze={bronze} />
+
+      <View style={styles.section}>
+        <SectionHeading icon={<Users color={colors.blue} size={14} />} label="ТОП‑3 ГРУППЫ" action="рейтинг" onAction={() => router.push('/(student)/(tabs)/grades')} />
+        <Animated.View entering={FadeInDown.delay(160).duration(480)} style={styles.podiumWrap}>
+          <View style={styles.podiumTitle}><Trophy color="#F5B544" size={16} /><Text style={styles.podiumTitleText}>Подиум месяца</Text></View>
+          <Podium entries={podium} />
+        </Animated.View>
+      </View>
+    </>
+  );
+
+  const renderItem = ({ item }: { item: RewardListItem }) => {
+    if (item.kind === 'monthsHeading') {
+      return <View style={styles.section}><SectionHeading icon={<Award color={colors.blue} size={14} />} label="МЕДАЛИ ПО МЕСЯЦАМ" /></View>;
+    }
+    if (item.kind === 'monthRow') {
+      return (
+        <View style={styles.monthRow}>
+          {item.medals.map((medal, offset) => (
+            <MonthCard key={medal.month} medal={medal} index={item.startIndex + offset} onPress={() => setDetail({ kind: 'month', medal })} />
+          ))}
+        </View>
+      );
+    }
+    if (item.kind === 'monthsHint') {
+      return <Text style={styles.hint}>Нажми на карточку, чтобы увидеть подробности и поделиться победой.</Text>;
+    }
+    if (item.kind === 'specialsHeading') {
+      return <View style={styles.section}><SectionHeading icon={<Sparkles color={colors.blue} size={14} />} label="ОСОБЫЕ ДОСТИЖЕНИЯ" /></View>;
+    }
+    return (
+      <View style={styles.specialItem}>
+        <SpecialCard achievement={item.achievement} definition={item.definition} gender={gender} index={item.index} onPress={() => setDetail({ kind: 'special', achievement: item.achievement, definition: item.definition })} />
+      </View>
+    );
+  };
 
   return (
     <>
-      <Screen background={<StudentBackground />} contentStyle={styles.screenContent} refreshing={refreshing} onRefresh={() => void Promise.all([achievements.refetch(), profile.refetch(), rating.refetch()])}>
-        <Animated.View entering={FadeInDown.duration(440)} style={styles.pageHeader}>
-          <View style={styles.kicker}><Text style={styles.kickerText}>НАГРАДЫ</Text></View>
-          <MaskedView style={styles.titleMask} maskElement={<Text style={styles.pageTitle}>Твой путь</Text>}>
-            <LinearGradient colors={[colors.blue, colors.teal, colors.clay]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }}>
-              <Text style={[styles.pageTitle, styles.titleMeasure]}>Твой путь</Text>
-            </LinearGradient>
-          </MaskedView>
-          <Text style={styles.pageDescription}>Каждая медаль — доказательство твоих усилий.</Text>
-        </Animated.View>
-
-        <ProfileHero fullName={student?.fullName ?? profile.data?.fullName ?? 'Ученик'} groupName={student?.groupName ?? profile.data?.group?.name ?? '—'} gold={gold} silver={silver} bronze={bronze} />
-
-        <View style={styles.section}>
-          <SectionHeading icon={<Users color={colors.blue} size={14} />} label="ТОП‑3 ГРУППЫ" action="рейтинг" onAction={() => router.push('/(student)/(tabs)/grades')} />
-          <Animated.View entering={FadeInDown.delay(160).duration(480)} style={styles.podiumWrap}>
-            <View style={styles.podiumTitle}><Trophy color="#F5B544" size={16} /><Text style={styles.podiumTitleText}>Подиум месяца</Text></View>
-            <Podium entries={podium} />
-          </Animated.View>
-        </View>
-
-        <View style={styles.section}>
-          <SectionHeading icon={<Award color={colors.blue} size={14} />} label="МЕДАЛИ ПО МЕСЯЦАМ" />
-          <View style={styles.monthGrid}>
-            {medals.map((medal, index) => <MonthCard key={medal.month} medal={medal} index={index} onPress={() => setDetail({ kind: 'month', medal })} />)}
-          </View>
-          <Text style={styles.hint}>Нажми на карточку, чтобы увидеть подробности и поделиться победой.</Text>
-        </View>
-
-        <View style={styles.section}>
-          <SectionHeading icon={<Sparkles color={colors.blue} size={14} />} label="ОСОБЫЕ ДОСТИЖЕНИЯ" />
-          <View style={styles.specialGrid}>
-            {specials.map((achievement, index) => {
-              const definition = SPECIALS[achievement.key];
-              if (!definition) return null;
-              return <SpecialCard key={achievement.key} achievement={achievement} definition={definition} gender={gender} index={index} onPress={() => setDetail({ kind: 'special', achievement, definition })} />;
-            })}
-          </View>
-        </View>
+      <Screen scroll={false} background={<StudentBackground particleCount={3} />} contentStyle={styles.screenFrame}>
+        <FlatList
+          data={listData}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          ListHeaderComponent={listHeader}
+          contentContainerStyle={styles.screenContent}
+          showsVerticalScrollIndicator={false}
+          initialNumToRender={2}
+          maxToRenderPerBatch={2}
+          updateCellsBatchingPeriod={48}
+          windowSize={4}
+          removeClippedSubviews
+          refreshing={refreshing}
+          onRefresh={() => void Promise.all([achievements.refetch(), profile.refetch(), rating.refetch()])}
+        />
       </Screen>
       <DetailModal detail={detail} onClose={() => setDetail(null)} />
     </>
@@ -342,7 +400,8 @@ export default function StudentAchievementsScreen() {
 }
 
 const styles = StyleSheet.create({
-  screenContent: { paddingTop: 4, paddingBottom: 210 },
+  screenFrame: { paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0 },
+  screenContent: { paddingHorizontal: spacing.md, paddingTop: 4, paddingBottom: 210 },
   pageHeader: { marginBottom: 22 },
   kicker: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 4, borderRadius: radius.pill, backgroundColor: 'rgba(38,80,187,0.10)', borderWidth: 1, borderColor: 'rgba(38,80,187,0.28)' },
   kickerText: { color: colors.blue, fontSize: 10, fontWeight: '900', letterSpacing: 1.4 },
@@ -370,13 +429,13 @@ const styles = StyleSheet.create({
   avatarRing: { width: 50, height: 50, padding: 3, borderRadius: 25 }, podiumAvatar: { flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 22 }, podiumInitials: { color: colors.wool, fontSize: 16, fontWeight: '900' },
   podiumName: { width: '100%', paddingHorizontal: 2, color: colors.ink, fontSize: 10, fontWeight: '800', textAlign: 'center' }, podiumScore: { minHeight: 14, color: colors.inkSecondary, fontSize: 9, fontWeight: '700' },
   pedestal: { width: '100%', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 9, borderTopLeftRadius: 14, borderTopRightRadius: 14 }, pedestal1: { height: 100 }, pedestal2: { height: 78 }, pedestal3: { height: 62 }, pedestalText: { color: colors.wool, fontSize: 23, fontWeight: '900' }, podiumEmpty: { padding: 24, color: colors.inkSecondary, fontSize: 13, textAlign: 'center' },
-  monthGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 }, monthCell: { width: '48.2%' }, monthPressable: { borderRadius: 18 }, cardPressed: { transform: [{ scale: 0.97 }] },
+  monthRow: { flexDirection: 'row', gap: 12, marginBottom: 12 }, monthCell: { flex: 1 }, monthPressable: { borderRadius: 18 }, cardPressed: { transform: [{ scale: 0.97 }] },
   monthCard: { position: 'relative', overflow: 'hidden', minHeight: 176, paddingHorizontal: 12, paddingVertical: 14, borderRadius: 18 }, monthLocked: { minHeight: 170, paddingHorizontal: 12, paddingVertical: 14, borderRadius: 18, borderWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(100,116,139,0.55)' },
   monthLabel: { color: 'rgba(255,255,255,0.78)', fontSize: 9, fontWeight: '900', letterSpacing: 1.05 }, lockedMonthLabel: { color: 'rgba(15,23,42,0.55)', fontSize: 9, fontWeight: '900', letterSpacing: 1.05 },
   placeBubble: { position: 'absolute', top: 10, right: 10, width: 28, height: 28, alignItems: 'center', justifyContent: 'center', borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.65)', boxShadow: '0 6px 14px rgba(15,23,42,0.18)' }, placeBubbleText: { fontSize: 15 },
   monthMainIcon: { marginTop: 16, fontSize: 38 }, monthBottom: { marginTop: 'auto' }, monthTitle: { color: colors.white, fontSize: 14, lineHeight: 17, fontWeight: '900' }, monthDescription: { marginTop: 4, color: 'rgba(255,255,255,0.80)', fontSize: 10, lineHeight: 14 },
   decor: { position: 'absolute', color: 'rgba(255,255,255,0.18)', fontSize: 23 }, decorTop: { top: 36, right: 18 }, decorBottom: { bottom: 22, left: 16 }, lockIcon: { marginTop: 23, fontSize: 29, opacity: 0.56 }, lockedText: { marginTop: 'auto', color: 'rgba(15,23,42,0.55)', fontSize: 9, fontWeight: '900', letterSpacing: 1.05 },
-  hint: { marginTop: 10, marginHorizontal: 2, color: colors.inkMuted, fontSize: 11, lineHeight: 17 }, specialGrid: { gap: 12 }, specialShadow: { borderRadius: 18 },
+  hint: { marginTop: -2, marginHorizontal: 2, color: colors.inkMuted, fontSize: 11, lineHeight: 17 }, specialItem: { marginBottom: 12 }, specialShadow: { borderRadius: 18 },
   specialCard: { position: 'relative', overflow: 'hidden', paddingHorizontal: 16, paddingVertical: 18, gap: 10, borderRadius: 18, borderWidth: 2, borderColor: 'rgba(255,255,255,0.20)', boxShadow: '0 14px 30px rgba(15,23,42,0.20)' }, specialLocked: { paddingHorizontal: 16, paddingVertical: 18, gap: 10, borderRadius: 18, borderWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(100,116,139,0.55)' },
   specialHead: { flexDirection: 'row', alignItems: 'center', gap: 12 }, specialIconWrap: { width: 52, height: 52, alignItems: 'center', justifyContent: 'center', borderRadius: 16, backgroundColor: 'rgba(15,23,42,0.30)', boxShadow: '0 10px 22px rgba(0,0,0,0.30)' }, specialIcon: { fontSize: 28 }, specialCopy: { flex: 1, minWidth: 0 },
   specialTitleLight: { color: '#F8FAFC', fontSize: 16, fontWeight: '900' }, specialLabelLight: { marginTop: 2, color: 'rgba(248,250,252,0.78)', fontSize: 9, fontWeight: '800', letterSpacing: 1.25 }, specialDescriptionLight: { color: 'rgba(248,250,252,0.88)', fontSize: 12, lineHeight: 18 },
