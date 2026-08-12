@@ -2,6 +2,7 @@ import { ComponentType, ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import MaskedView from '@react-native-masked-view/masked-view';
 import {
   Bell,
   BookOpen,
@@ -103,7 +104,7 @@ function GlassCard({
 }) {
   const content = (
     <LinearGradient
-      colors={['rgba(255,255,255,0.98)', 'rgba(255,255,255,0.78)']}
+      colors={['rgba(255,255,255,0.92)', 'rgba(255,255,255,0.68)']}
       style={[styles.glassCard, style]}
     >
       <View pointerEvents="none" style={styles.cardSheen} />
@@ -135,7 +136,7 @@ function DashboardStat({
 }) {
   return (
     <LinearGradient
-      colors={['rgba(255,255,255,0.98)', 'rgba(255,255,255,0.76)']}
+      colors={['rgba(255,255,255,0.92)', 'rgba(255,255,255,0.68)']}
       style={styles.statCard}
     >
       <View style={[styles.statGlow, { backgroundColor: accent }]} />
@@ -228,7 +229,7 @@ export default function StudentHomeScreen() {
     <View style={styles.topBar}>
       <Pressable style={styles.identity} onPress={() => router.push('/(student)/(tabs)/profile')}>
         <LinearGradient
-          colors={champion ? ['#FDE68A', '#D97706'] : [colors.wool, colors.clay]}
+          colors={champion ? ['#FDE68A', '#D97706'] : ['#FFD27A', '#F5B544', colors.clay]}
           style={[styles.avatar, champion && styles.championAvatar]}
         >
           {champion ? <Text style={styles.crown}>👑</Text> : null}
@@ -265,12 +266,43 @@ export default function StudentHomeScreen() {
       refreshing={refreshing}
       onRefresh={refreshDashboard}
     >
-      <View pointerEvents="none" style={styles.orangeGlow} />
-      <View pointerEvents="none" style={styles.blueGlow} />
+      <LinearGradient
+        pointerEvents="none"
+        colors={[colors.cream, colors.background, '#F1F5FF', '#EEF9F7']}
+        locations={[0, 0.36, 0.72, 1]}
+        style={styles.pageGradient}
+      />
+      <LinearGradient
+        pointerEvents="none"
+        colors={['rgba(239,142,56,0.15)', 'rgba(239,142,56,0.05)', 'rgba(239,142,56,0)']}
+        locations={[0, 0.42, 1]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.orangeGlow}
+      />
+      <LinearGradient
+        pointerEvents="none"
+        colors={['rgba(38,80,187,0)', 'rgba(38,80,187,0.05)', 'rgba(38,80,187,0.12)']}
+        locations={[0, 0.52, 1]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.blueGlow}
+      />
 
       <View style={styles.hero}>
         <Text style={styles.greeting}>ПРИВЕТ, БОЕЦ</Text>
-        <Text style={styles.heroName}>{firstName} 👋</Text>
+        <MaskedView
+          style={styles.heroNameMask}
+          maskElement={<Text style={styles.heroName}>{firstName} 👋</Text>}
+        >
+          <LinearGradient
+            colors={[colors.blue, colors.teal, colors.clay]}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+          >
+            <Text style={[styles.heroName, styles.heroNameMeasure]}>{firstName} 👋</Text>
+          </LinearGradient>
+        </MaskedView>
         <View style={styles.titleBadge}>
           <Text style={styles.titleEmoji}>{xp?.titleEmoji ?? '🌱'}</Text>
           <Text style={styles.titleText}>{xp?.title ?? 'Юный исследователь'}</Text>
@@ -392,10 +424,11 @@ export default function StudentHomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  screenContent: { paddingTop: 0, gap: 0, overflow: 'hidden' },
-  orangeGlow: { position: 'absolute', top: -100, left: -130, width: 300, height: 300, borderRadius: 150, backgroundColor: 'rgba(239,142,56,0.10)' },
-  blueGlow: { position: 'absolute', top: 150, right: -180, width: 340, height: 340, borderRadius: 170, backgroundColor: 'rgba(38,80,187,0.07)' },
-  topBar: { minHeight: 64, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, backgroundColor: 'rgba(248,248,255,0.94)', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(55,47,87,0.05)' },
+  screenContent: { paddingTop: 0, gap: 0 },
+  pageGradient: { position: 'absolute', top: -180, right: -spacing.md, bottom: -180, left: -spacing.md },
+  orangeGlow: { position: 'absolute', top: -80, right: -spacing.md, left: -spacing.md, height: 680 },
+  blueGlow: { position: 'absolute', top: 180, right: -spacing.md, left: -spacing.md, height: 1050 },
+  topBar: { minHeight: 64, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, backgroundColor: 'rgba(248,248,255,0.78)' },
   identity: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   avatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', ...shadows.card },
   championAvatar: { borderWidth: 2, borderColor: '#D97706' },
@@ -413,7 +446,9 @@ const styles = StyleSheet.create({
   buttonPressed: { transform: [{ scale: 0.94 }] },
   hero: { paddingHorizontal: 4, paddingTop: spacing.xl, paddingBottom: spacing.xs },
   greeting: { color: colors.inkSecondary, fontSize: 12, fontWeight: '700', letterSpacing: 1.2 },
-  heroName: { marginTop: spacing.xs, color: colors.blue, fontSize: 39, lineHeight: 44, fontWeight: '900', letterSpacing: -1.6 },
+  heroNameMask: { alignSelf: 'flex-start', marginTop: spacing.xs },
+  heroName: { color: colors.ink, fontSize: 39, lineHeight: 44, fontWeight: '900', letterSpacing: -1.6 },
+  heroNameMeasure: { opacity: 0 },
   titleBadge: { alignSelf: 'flex-start', marginTop: 14, paddingHorizontal: 14, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: spacing.xs, borderRadius: radius.pill, backgroundColor: 'rgba(239,142,56,0.14)', borderWidth: 1, borderColor: 'rgba(239,142,56,0.36)', ...shadows.card },
   titleEmoji: { fontSize: 14 },
   titleText: { color: colors.wool, fontSize: 12, fontWeight: '800', letterSpacing: 0.4 },

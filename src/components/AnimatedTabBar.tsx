@@ -20,6 +20,7 @@ type NativeTabBarProps = Parameters<
 type AnimatedTabBarProps = NativeTabBarProps & {
   accent: string;
   activeBackground: string;
+  floating?: boolean;
 };
 
 type TabButtonProps = {
@@ -27,6 +28,7 @@ type TabButtonProps = {
   label: string;
   activeColor: string;
   activeBackground: string;
+  floating: boolean;
   accessibilityLabel?: string;
   testID?: string;
   icon?: (props: { focused: boolean; color: string; size: number }) => React.ReactNode;
@@ -41,6 +43,7 @@ function TabButton({
   label,
   activeColor,
   activeBackground,
+  floating,
   accessibilityLabel,
   testID,
   icon,
@@ -98,7 +101,12 @@ function TabButton({
       >
         <Animated.View
           pointerEvents="none"
-          style={[styles.pill, { backgroundColor: activeBackground }, pillStyle]}
+          style={[
+            styles.pill,
+            floating ? styles.floatingPill : styles.anchoredPill,
+            { backgroundColor: activeBackground },
+            pillStyle,
+          ]}
         />
         <Animated.View style={[styles.icon, iconStyle]}>
           {icon?.({
@@ -110,6 +118,7 @@ function TabButton({
         <Animated.Text numberOfLines={1} style={[styles.label, labelStyle]}>
           {label}
         </Animated.Text>
+        {floating ? <Animated.View style={[styles.indicator, pillStyle]} /> : null}
       </Pressable>
     </Animated.View>
   );
@@ -122,10 +131,17 @@ export function AnimatedTabBar({
   insets,
   accent,
   activeBackground,
+  floating = false,
 }: AnimatedTabBarProps) {
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
-      <View style={styles.row}>
+    <View
+      style={[
+        styles.container,
+        floating ? styles.floatingContainer : styles.anchoredContainer,
+        { paddingBottom: insets.bottom + (floating ? 8 : 0) },
+      ]}
+    >
+      <View style={[styles.row, floating && styles.floatingRow]}>
         {state.routes.map((route, index) => {
           const focused = state.index === index;
           const { options } = descriptors[route.key];
@@ -158,6 +174,7 @@ export function AnimatedTabBar({
               label={label}
               activeColor={accent}
               activeBackground={activeBackground}
+              floating={floating}
               accessibilityLabel={options.tabBarAccessibilityLabel}
               testID={options.tabBarButtonTestID}
               icon={options.tabBarIcon as TabButtonProps['icon']}
@@ -173,10 +190,18 @@ export function AnimatedTabBar({
 
 const styles = StyleSheet.create({
   container: {
+    paddingTop: 0,
+  },
+  anchoredContainer: {
     backgroundColor: colors.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
     ...shadows.floating,
+  },
+  floatingContainer: {
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    backgroundColor: 'transparent',
   },
   row: {
     height: 68,
@@ -186,6 +211,17 @@ const styles = StyleSheet.create({
     paddingTop: 5,
     paddingBottom: 5,
   },
+  floatingRow: {
+    height: 72,
+    paddingHorizontal: 8,
+    paddingTop: 7,
+    paddingBottom: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.82)',
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(255,255,255,0.94)',
+    ...shadows.floating,
+  },
   item: {
     flex: 1,
   },
@@ -194,16 +230,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 3,
-    overflow: 'hidden',
-    borderRadius: radius.md,
+    borderRadius: radius.pill,
   },
   pill: {
     position: 'absolute',
+  },
+  anchoredPill: {
     top: 1,
     right: 4,
     bottom: 1,
     left: 4,
     borderRadius: radius.md,
+  },
+  floatingPill: {
+    top: 0,
+    left: '50%',
+    width: 40,
+    height: 40,
+    marginLeft: -20,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: 'rgba(239,142,56,0.18)',
   },
   icon: {
     height: 25,
@@ -216,5 +263,19 @@ const styles = StyleSheet.create({
     lineHeight: 13,
     fontWeight: '800',
     textAlign: 'center',
+  },
+  indicator: {
+    position: 'absolute',
+    bottom: -1,
+    left: '50%',
+    width: 5,
+    height: 5,
+    marginLeft: -2.5,
+    borderRadius: 3,
+    backgroundColor: colors.blue,
+    shadowColor: colors.blue,
+    shadowOpacity: 0.32,
+    shadowRadius: 4,
+    elevation: 2,
   },
 });

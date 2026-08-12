@@ -7,7 +7,12 @@ export default function StudentTabs() {
   return (
     <Tabs
       tabBar={(props) => (
-        <AnimatedTabBar {...props} accent={colors.blue} activeBackground="#E9EEFC" />
+        <AnimatedTabBar
+          {...props}
+          floating
+          accent={colors.ink}
+          activeBackground="rgba(239,142,56,0.12)"
+        />
       )}
       screenOptions={{
         headerShown: false,
@@ -16,8 +21,8 @@ export default function StudentTabs() {
     >
       <Tabs.Screen name="index" options={{ title: 'Главная', tabBarIcon: ({ color }) => <Home color={color} size={21} /> }} />
       <Tabs.Screen name="homework" options={{ title: 'ДЗ', tabBarIcon: ({ color }) => <BookOpen color={color} size={21} /> }} />
-      <Tabs.Screen name="grades" options={{ title: 'Оценки', tabBarIcon: ({ color }) => <BarChart3 color={color} size={21} /> }} />
       <Tabs.Screen name="achievements" options={{ title: 'Награды', tabBarIcon: ({ color }) => <Trophy color={color} size={21} /> }} />
+      <Tabs.Screen name="grades" options={{ title: 'Рейтинг', tabBarIcon: ({ color }) => <BarChart3 color={color} size={21} /> }} />
       <Tabs.Screen name="profile" options={{ title: 'Профиль', tabBarIcon: ({ color }) => <UserRound color={color} size={21} /> }} />
     </Tabs>
   );
